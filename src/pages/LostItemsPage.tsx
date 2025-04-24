@@ -168,10 +168,15 @@ const LOSTITEMS = () => {
     });
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/signin");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      // Redirect or update state as needed
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Handle error gracefully, maybe show a message to the user
+    }
   };
-
   return (
     <div className="min-h-screen flex flex-col justify-start bg-black">
       <header className="py-8 px-8 bg-[#CF0F47] text-white rounded-xl mx-10 my-4">
