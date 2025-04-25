@@ -1,8 +1,7 @@
-// Remove unused React import (in React 17+ it's not required)
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -28,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
 import { supabase } from "./supabase-client";
 
 interface FoundItem {
@@ -48,18 +45,26 @@ const FOUNDITEMSPAGE = () => {
   const [foundItems, setFoundItems] = useState<FoundItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<FoundItem>();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
   const fetchFoundItems = async () => {
-    const { error, data } = await supabase
-      .from("FOUND_TABLE")
-      .select("*")
-      .order("dateFound", { ascending: true });
+    setIsLoading(true); // Set loading to true before fetching
+    try {
+      const { error, data } = await supabase
+        .from("FOUND_TABLE")
+        .select("*")
+        .order("dateFound", { ascending: true });
 
-    if (error) {
-      console.error(error);
-      return;
+      if (error) {
+        console.error("Error fetching found items:", error);
+        return;
+      }
+      setFoundItems(data || []);
+    } catch (err) {
+      console.error("Error with Supabase connection:", err);
+    } finally {
+      setIsLoading(false); // Set loading to false after fetching
     }
-    setFoundItems(data);
   };
 
   useEffect(() => {
@@ -139,86 +144,114 @@ const FOUNDITEMSPAGE = () => {
           </Select>
         </div>
 
-        {/* Items Count */}
-        <div className="mb-6">
-          <p className="text-gray-600">
-            Showing {filteredItems.length}{" "}
-            {filteredItems.length === 1 ? "item" : "items"}
-          </p>
-        </div>
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <p className="text-gray-400 mt-4">
+              Loading found items Browning...
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Items Count */}
+            <div className="mb-6">
+              <p className="text-gray-600">
+                Showing {filteredItems.length}{" "}
+                {filteredItems.length === 1 ? "item" : "items"}
+              </p>
+            </div>
 
-        <div className="mb-6">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  to="/"
-                  className="text-[#CF0F47] hover:text-[#FF0B55] transition-colors flex items-center"
+            <div className="mb-6">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/"
+                      className="text-[#CF0F47] hover:text-[#FF0B55] transition-colors flex items-center"
+                    >
+                      <ArrowLeft className="h-5 w-5 mr-2" />
+                      Back to Home
+                    </Link>
+                  </TooltipTrigger>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            {/* Items Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredItems.map((item) => (
+                <Card
+                  key={item.id}
+                  className="flex justify-between overflow-hidden bg-gray-800 text-white border-2"
                 >
-                  <ArrowLeft className="h-5 w-5 mr-2" />
-                  Back to Home
-                </Link>
-              </TooltipTrigger>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">
+                      {item.description}
+                    </CardTitle>
+                    <p className="text-sm text-gray-500">
+                      Found on {new Date(item.dateFound).toLocaleDateString()}
+                    </p>
+                  </CardHeader>
 
-        {/* Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredItems.map((item) => (
-            <Card
-              key={item.id}
-              className="flex justify-between overflow-hidden bg-gray-800 text-white border-2"
-            >
-              <CardHeader className="pb-2">
-                {/* <div className="flex justify-between items-start"> */}
-                <CardTitle className="text-lg">{item.description}</CardTitle>
-                {/* </div> */}
-                <p className="text-sm text-gray-500">
-                  Found on {new Date(item.dateFound).toLocaleDateString()}
+                  <CardContent className="space-y-4">
+                    {item.itemImageURL && (
+                      <img
+                        src={item.itemImageURL}
+                        alt={item.description}
+                        className="rounded-md object-cover h-48 w-full"
+                      />
+                    )}
+
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 gap-1">
+                        <span className="text-xs font-medium text-gray-500">
+                          placeWhereFound:
+                        </span>
+                        <span className="text-xs col-span-2">
+                          {item.placeWhereFound}
+                        </span>
+
+                        <span className="text-xs font-medium text-gray-500">
+                          Finder:
+                        </span>
+                        <span className="text-xs col-span-2">
+                          {item.finderRollNo}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="default"
+                      className="w-full"
+                      onClick={() => handleItemClick(item)}
+                    >
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {filteredItems.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="text-xl text-gray-500 mb-4">
+                  No items found matching your search
                 </p>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                {item.itemImageURL && (
-                  // <div className="flex justify-center">
-                  <img
-                    src={item.itemImageURL}
-                    alt={item.description}
-                    className="rounded-md object-cover h-48 w-full"
-                  />
-                  // </div>
-                )}
-
-                <div className="space-y-2">
-                  <div className="grid grid-cols-3 gap-1">
-                    <span className="text-xs font-medium text-gray-500">
-                      placeWhereFound:
-                    </span>
-                    <span className="text-xs col-span-2">
-                      {item.placeWhereFound}
-                    </span>
-
-                    <span className="text-xs font-medium text-gray-500">
-                      Finder:
-                    </span>
-                    <span className="text-xs col-span-2">
-                      {item.finderRollNo}
-                    </span>
-                  </div>
-                </div>
-
                 <Button
-                  variant="default"
-                  className="w-full"
-                  onClick={() => handleItemClick(item)}
+                  variant="outline"
+                  className="text-black"
+                  onClick={() => {
+                    setSearchTerm("");
+                  }}
                 >
-                  View Details
+                  Clear filters
                 </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            )}
+          </>
+        )}
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="bg-gray-800 text-white border-none">
@@ -291,23 +324,6 @@ const FOUNDITEMSPAGE = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {filteredItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-xl text-gray-500 mb-4">
-              No items found matching your search
-            </p>
-            <Button
-              variant="outline"
-              className="text-black"
-              onClick={() => {
-                setSearchTerm("");
-              }}
-            >
-              Clear filters
-            </Button>
-          </div>
-        )}
       </div>
       <footer
         className={`py-4 px-8 bg-[#CF0F47] border-t border-[#CF0F47] rounded-xl mx-10 my-4`}

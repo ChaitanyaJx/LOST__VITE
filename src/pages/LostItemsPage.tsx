@@ -28,8 +28,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-// Note: Framer Motion is not available in the artifact system
-// Using standard React for animations instead
 import { supabase } from "./supabase-client";
 
 interface LostItem {
@@ -61,6 +59,7 @@ const LOSTITEMS = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
   const [foundItemForm, setFoundItemForm] = useState<FoundItemForm>({
     finderRollNo: "",
     placeWhereFound: "",
@@ -128,7 +127,6 @@ const LOSTITEMS = () => {
     try {
       // Insert into FOUND_TABLE - let Supabase generate the ID
       const { error: insertError } = await supabase.from("FOUND_TABLE").insert({
-        // Omit the id field to let Supabase/PostgreSQL auto-generate it
         finderRollNo: foundItemForm.finderRollNo,
         description: selectedItem.description,
         itemImageURL: selectedItem.itemImageURL,
@@ -171,12 +169,12 @@ const LOSTITEMS = () => {
   };
 
   const fetchLostItems = async () => {
+    setIsLoading(true); // Set loading to true before fetching
     try {
-      // Add error handling for CORS issues
       const { error, data } = await supabase
         .from("LOST_TABLE")
         .select("*")
-        .eq("stillMissing", "searching") // Only fetch items still being searched for
+        .eq("stillMissing", "searching")
         .order("dateLost", { ascending: false });
 
       if (error) {
@@ -186,6 +184,8 @@ const LOSTITEMS = () => {
       setLostItems(data || []);
     } catch (err) {
       console.error("Error with Supabase connection:", err);
+    } finally {
+      setIsLoading(false); // Set loading to false after fetching
     }
   };
 
@@ -218,11 +218,9 @@ const LOSTITEMS = () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      // Redirect or update state as needed
-      window.location.href = "/signin"; // Add redirection to login page
+      window.location.href = "/signin";
     } catch (error) {
       console.error("Error during logout:", error);
-      // Handle error gracefully, maybe show a message to the user
     }
   };
 
@@ -260,75 +258,103 @@ const LOSTITEMS = () => {
           </Select>
         </div>
 
-        {/* Items Count */}
-        <div className="mb-6">
-          <p className="text-gray-400">
-            Showing {filteredAndSortedItems.length}{" "}
-            {filteredAndSortedItems.length === 1 ? "item" : "items"}
-          </p>
-        </div>
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <p className="text-gray-400 mt-4">Loading lost items...</p>
+          </div>
+        ) : (
+          <>
+            {/* Items Count */}
+            <div className="mb-6">
+              <p className="text-gray-400">
+                Showing {filteredAndSortedItems.length}{" "}
+                {filteredAndSortedItems.length === 1 ? "item" : "items"}
+              </p>
+            </div>
 
-        {/* Items List - Compact Cards */}
-        <div className="space-y-4">
-          {filteredAndSortedItems.map((item) => (
-            <Card
-              key={item.id}
-              className="overflow-hidden border-l-4 border-l-blue-500 bg-gray-800 text-white"
-            >
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {/* Item Image (if available) */}
-                  {item.itemImageURL && (
-                    <div className="flex-shrink-0">
-                      <img
-                        src={item.itemImageURL}
-                        alt={item.description}
-                        className="rounded-md object-cover h-16 w-16"
-                      />
-                    </div>
-                  )}
-                  {/* Item Details */}
-                  <div className="flex-grow">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-medium text-base text-white">
-                          {item.description}
-                        </h3>
-                        <p className="text-sm text-gray-300 flex items-center gap-1">
-                          <Calendar className="h-3 w-3" /> Lost on{" "}
-                          {new Date(item.dateLost).toLocaleDateString()}
-                        </p>
+            {/* Items List - Compact Cards */}
+            <div className="space-y-4">
+              {filteredAndSortedItems.map((item) => (
+                <Card
+                  key={item.id}
+                  className="overflow-hidden border-l-4 border-l-blue-500 bg-gray-800 text-white"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      {item.itemImageURL && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={item.itemImageURL}
+                            alt={item.description}
+                            className="rounded-md object-cover h-16 w-16"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-medium text-base text-white">
+                              {item.description}
+                            </h3>
+                            <p className="text-sm text-gray-300 flex items-center gap-1">
+                              <Calendar className="h-3 w-3" /> Lost on{" "}
+                              {new Date(item.dateLost).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                          <p className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-gray-300" />
+                            <span className="text-gray-300">
+                              Location:
+                            </span>{" "}
+                            <span className="text-white">
+                              {item.placeWhereLost}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1">
+                        <Button variant="secondary" size="sm">
+                          Searching
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={() => handleItemClick(item)}
+                          className="text-black border-gray-600 hover:bg-gray-700"
+                        >
+                          Details
+                        </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
-                      <p className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-gray-300" />
-                        <span className="text-gray-300">Location:</span>{" "}
-                        <span className="text-white">
-                          {item.placeWhereLost}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  {/* Action Button */}
-                  <div className="grid grid-cols-1 gap-1">
-                    <Button variant="secondary" size="sm">
-                      Searching
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={() => handleItemClick(item)}
-                      className="text-black border-gray-600 hover:bg-gray-700"
-                    >
-                      Details
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {filteredAndSortedItems.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="text-xl text-gray-400 mb-4">
+                  No items found matching your search
+                </p>
+                <Button
+                  variant="outline"
+                  className="text-black border-gray-600 hover:bg-gray-700"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSortOption("newest");
+                  }}
+                >
+                  Clear filters
+                </Button>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Detail Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -344,7 +370,6 @@ const LOSTITEMS = () => {
 
             {selectedItem && (
               <div className="space-y-4">
-                {/* Item Image */}
                 {selectedItem.itemImageURL && (
                   <div className="flex justify-center">
                     <img
@@ -354,24 +379,19 @@ const LOSTITEMS = () => {
                     />
                   </div>
                 )}
-
-                {/* Item Details */}
                 <div className="grid grid-cols-3 gap-2 text-sm">
                   <span className="font-medium text-gray-300">Lost On:</span>
                   <span className="col-span-2 text-white">
                     {new Date(selectedItem.dateLost).toLocaleDateString()}
                   </span>
-
                   <span className="font-medium text-gray-300">Location:</span>
                   <span className="col-span-2 text-white">
                     {selectedItem.placeWhereLost}
                   </span>
-
                   <span className="font-medium text-gray-300">Owner:</span>
                   <span className="col-span-2 text-white">
                     {selectedItem.personRollno}
                   </span>
-
                   <span className="font-medium text-gray-300">Contact:</span>
                   <span className="col-span-2 text-white">
                     {selectedItem.PersonContact || "Not provided"}
@@ -458,7 +478,6 @@ const LOSTITEMS = () => {
                     required
                   />
                 </div>
-
                 <div className="grid gap-2">
                   <label
                     htmlFor="placeWhereFound"
@@ -475,7 +494,6 @@ const LOSTITEMS = () => {
                     required
                   />
                 </div>
-
                 <div className="grid gap-2">
                   <label
                     htmlFor="locationItem"
@@ -492,7 +510,6 @@ const LOSTITEMS = () => {
                     required
                   />
                 </div>
-
                 <div className="grid gap-2">
                   <label
                     htmlFor="finderContact"
@@ -509,7 +526,6 @@ const LOSTITEMS = () => {
                     required
                   />
                 </div>
-
                 <div className="grid gap-2">
                   <label
                     htmlFor="dateFound"
@@ -528,7 +544,6 @@ const LOSTITEMS = () => {
                   />
                 </div>
               </div>
-
               <DialogFooter className="pt-4">
                 <Button
                   type="submit"
@@ -550,24 +565,6 @@ const LOSTITEMS = () => {
             </form>
           </DialogContent>
         </Dialog>
-
-        {filteredAndSortedItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-xl text-gray-400 mb-4">
-              No items found matching your search
-            </p>
-            <Button
-              variant="outline"
-              className="text-black border-gray-600 hover:bg-gray-700"
-              onClick={() => {
-                setSearchTerm("");
-                setSortOption("newest");
-              }}
-            >
-              Clear filters
-            </Button>
-          </div>
-        )}
 
         {/* Add New Lost Item Button */}
         <div className="fixed bottom-8 right-8">
