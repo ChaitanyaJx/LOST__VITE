@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -33,17 +32,6 @@ import {
 import { useForm } from "react-hook-form";
 import { supabase } from "./supabase-client";
 
-interface FoundItem {
-  id: string;
-  finderRollNo: string;
-  description: string;
-  itemImageURL: string | null;
-  placeWhereFound: string;
-  locationItem: string;
-  finderContact: string;
-  dateFound: string;
-}
-
 // Color scheme constants
 const colors = {
   black: "bg-black",
@@ -55,7 +43,7 @@ const colors = {
 };
 
 function FoundPage() {
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -71,14 +59,18 @@ function FoundPage() {
     },
   });
 
-  const handleImageChange = (e) => {
+  const handleImageChange = (e: any) => {
     const file = e.target.files[0];
     if (file) {
       setImageFile(file); // Store the actual file for upload
 
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        // Type assertion to ensure we're setting the correct type
+        if (typeof reader.result === "string") {
+          setImagePreview(reader.result);
+        }
+        // Optionally handle ArrayBuffer case if needed
       };
       reader.readAsDataURL(file);
     }
@@ -107,7 +99,7 @@ function FoundPage() {
     console.log(data);
     let imageURL: string = "";
     if (imageFile) {
-      imageURL = await uploadImg(imageFile);
+      imageURL = (await uploadImg(imageFile)) || "";
     }
     try {
       const { error } = await supabase

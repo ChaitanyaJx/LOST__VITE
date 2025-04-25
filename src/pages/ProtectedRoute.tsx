@@ -45,7 +45,7 @@ const ProtectedRoute = () => {
 
     // Set up auth state listener
     const { data: listenerData } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (session) => {
         if (mounted) {
           setAuthState({
             isLoading: false,

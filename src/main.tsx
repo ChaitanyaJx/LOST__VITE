@@ -9,22 +9,26 @@ import LOSTITEMS from "./pages/LostItemsPage";
 import AdminSignIn from "./LoginPage";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import "./index.css";
+const rootElement = document.getElementById("root");
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/lostitem" element={<LostPage />} />
-        <Route path="/founditem" element={<FoundPage />} />
-        <Route path="/founditems" element={<FOUNDITEMSPAGE />} />
-        <Route path="/signin" element={<AdminSignIn />} />
-
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/lostitems" element={<LOSTITEMS />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  </React.StrictMode>,
-);
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/lostitem" element={<LostPage />} />
+          <Route path="/founditem" element={<FoundPage />} />
+          <Route path="/founditems" element={<FOUNDITEMSPAGE />} />
+          <Route path="/signin" element={<AdminSignIn />} />
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/lostitems" element={<LOSTITEMS />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </React.StrictMode>,
+  );
+} else {
+  console.error("Root element not found");
+}

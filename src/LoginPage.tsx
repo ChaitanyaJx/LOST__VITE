@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// Remove unused React import (in React 17+ it's not required)
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Card,
@@ -41,7 +42,7 @@ const AdminSignIn = () => {
     checkSession();
   }, [navigate]);
 
-  const handleSignIn = async (e) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -115,7 +116,11 @@ const AdminSignIn = () => {
                   className="pl-10 bg-gray-900 border-gray-800 focus:border-pink-600 text-white"
                   value={adminId}
                   onChange={(e) => setAdminId(e.target.value)}
-                  style={{ "--input-focus-border": theme.primary }}
+                  style={
+                    {
+                      "--input-focus-border": theme.primary,
+                    } as React.CSSProperties
+                  }
                 />
               </div>
             </div>
@@ -133,7 +138,11 @@ const AdminSignIn = () => {
                   className="pl-10 bg-gray-900 border-gray-800 focus:border-pink-600 text-white"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  style={{ "--input-focus-border": theme.primary }}
+                  style={
+                    {
+                      "--input-focus-border": theme.primary,
+                    } as React.CSSProperties
+                  }
                 />
               </div>
             </div>
@@ -159,7 +168,6 @@ const AdminSignIn = () => {
               className="w-full bg-pink-600 hover:bg-pink-700 text-white"
               style={{
                 backgroundColor: theme.primary,
-                "--btn-hover-bg": theme.secondary,
               }}
               disabled={isLoading}
             >

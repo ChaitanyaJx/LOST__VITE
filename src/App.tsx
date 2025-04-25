@@ -2,20 +2,12 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-// Tailwind classes for the color scheme
-const colors = {
-  black: "bg-[#000000]",
-  primary: "bg-[#CF0F47]",
-  secondary: "bg-[#FF0B55]",
-  light: "bg-[#FFDEDE]",
-  textLight: "text-[#FFDEDE]",
-  textDark: "text-[#000000]",
-};
-
 function App() {
   const navigate = useNavigate();
-  const [hoveredButton, setHoveredButton] = useState(null);
-
+  // Change the state declaration to:
+  const [hoveredButton, setHoveredButton] = useState<"lost" | "found" | null>(
+    null,
+  );
   const handleNavigation = (path: any) => {
     navigate(path);
   };

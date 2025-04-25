@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+// Remove unused React import (in React 17+ it's not required)
+import { useState, useEffect } from "react";
 import { Search, Calendar, MapPin } from "lucide-react";
 import {
   Select,
@@ -21,7 +22,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { supabase } from "./supabase-client";
-import { useNavigate } from "react-router-dom";
 
 interface LostItem {
   id: string;
@@ -50,7 +50,6 @@ const LOSTITEMS = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFoundFormOpen, setIsFoundFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate();
   const [foundItemForm, setFoundItemForm] = useState<FoundItemForm>({
     finderRollNo: "",
     placeWhereFound: "",
@@ -329,16 +328,6 @@ const LOSTITEMS = () => {
                     {selectedItem.PersonContact || "Not provided"}
                   </span>
                 </div>
-
-                {/* Item Description */}
-                {selectedItem.additionalInfo && (
-                  <div className="mt-4">
-                    <h4 className="font-medium text-gray-700 mb-1">
-                      Additional Information:
-                    </h4>
-                    <p className="text-sm">{selectedItem.additionalInfo}</p>
-                  </div>
-                )}
               </div>
             )}
 

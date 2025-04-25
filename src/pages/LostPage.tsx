@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,11 +25,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
-  TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useForm } from "react-hook-form";
+import { supabase } from "./supabase-client"; // Make sure this path is correct for your project
 
 // Color scheme constants
 const colors = {
@@ -42,10 +41,12 @@ const colors = {
   textDark: "text-black",
 };
 
-function FoundPage() {
-  const [imagePreview, setImagePreview] = useState(null);
+function LostPage() {
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   const form = useForm({
     defaultValues: {
@@ -57,33 +58,88 @@ function FoundPage() {
     },
   });
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
+  const handleImageChange = (e: any) => {
+    const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file); // Store the actual file for upload
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        if (typeof reader.result === "string") {
+          setImagePreview(reader.result);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const onSubmit = (data) => {
-    setIsSubmitting(true);
+  // Upload image to Supabase storage
+  const uploadImg = async (file: File) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
 
-    // Simulate form submission
-    setTimeout(() => {
-      console.log({ ...data, image: imagePreview });
-      setIsSubmitting(false);
+    const { error } = await supabase.storage
+      .from("found-items-images") // Changed to found-items-images
+      .upload(filePath, file);
+
+    if (error) {
+      console.error("Upload Error: ", error.message);
+      return null;
+    }
+
+    const { data } = await supabase.storage
+      .from("found-items-images")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
+  const onSubmit = async (data: any) => {
+    setIsSubmitting(true);
+    setError("");
+
+    let imageURL = "";
+    if (imageFile) {
+      imageURL = (await uploadImg(imageFile)) || "";
+      console.log(imageURL);
+    }
+
+    try {
+      const { error } = await supabase
+        .from("LOST_TABLE") // Using LOST_TABLE as specified
+        .insert({
+          personRollno: data.rollNo,
+          description: data.description,
+          itemImageURL: imageURL,
+          placeWhereLost: data.place,
+          PersonContact: data.contact, // Matches your interface
+          dateLost: new Date().toISOString(),
+          stillMissing: "searching", // Default status as per your interface
+        });
+
+      if (error) {
+        console.error("Insert Error: ", error);
+        setError("Failed to submit your lost item report. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Show success message
       setShowSuccess(true);
 
-      // Reset form after 2 seconds of showing success
+      // Reset form after success
       setTimeout(() => {
         form.reset();
         setImagePreview(null);
+        setImageFile(null);
         setShowSuccess(false);
       }, 3000);
-    }, 1500);
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      setError("Failed to submit your lost item report. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -125,6 +181,12 @@ function FoundPage() {
             </TooltipProvider>
           </div>
 
+          {error && (
+            <Alert className="mb-6 bg-red-100 border-red-500 text-red-800">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           {showSuccess ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -153,10 +215,11 @@ function FoundPage() {
                       </div>
                     </div>
                     <h3 className="text-lg font-medium">
-                      Found Item Report Submitted!
+                      Lost Item Report Submitted!
                     </h3>
                     <p className="mt-2">
-                      Thank you for helping return lost items to their owners.
+                      Your lost item has been reported. We hope someone finds it
+                      soon!
                     </p>
                   </div>
                 </AlertDescription>
@@ -166,10 +229,10 @@ function FoundPage() {
             <Card className="shadow-xl border-gray-800 bg-gray-950 text-gray-100">
               <CardHeader className="border-b border-gray-800 bg-gray-950 rounded-t-lg">
                 <CardTitle className="text-2xl font-bold text-white">
-                  Report a Missing Item
+                  Report a Lost Item
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Add a lost item request by submitting the details below
+                  Submit the details of your missing item below
                 </CardDescription>
               </CardHeader>
 
@@ -213,7 +276,7 @@ function FoundPage() {
                           </FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder="Describe the found item in detail (color, brand, identifying features, etc.)"
+                              placeholder="Describe the lost item in detail (color, brand, identifying features, etc.)"
                               className="bg-gray-800 border-gray-700 text-white focus:ring-[#FF0B55] focus:border-[#FF0B55]"
                               rows={4}
                               {...field}
@@ -227,7 +290,7 @@ function FoundPage() {
                     {/* Item Image */}
                     <div className="space-y-2">
                       <FormLabel className="text-gray-300">
-                        Item Image
+                        Item Image (optional)
                       </FormLabel>
                       <div className="border-2 border-dashed border-gray-700 rounded-lg overflow-hidden">
                         {imagePreview ? (
@@ -254,7 +317,7 @@ function FoundPage() {
                           >
                             <Upload className="h-10 w-10 text-gray-500 mb-2" />
                             <span className="text-center text-gray-400">
-                              Click to upload an image of the found item
+                              Click to upload an image of the lost item
                             </span>
                           </label>
                         )}
@@ -276,7 +339,7 @@ function FoundPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-gray-300">
-                            Place where item lost
+                            Place where item was lost
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -308,8 +371,8 @@ function FoundPage() {
                             />
                           </FormControl>
                           <FormDescription className="text-gray-500">
-                            This will be used by the person who found the item
-                            contact you.
+                            This will be used by the person who finds the item
+                            to contact you.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -365,7 +428,7 @@ function FoundPage() {
         className={`py-4 px-8 bg-[#CF0F47] border-t border-[#CF0F47] rounded-xl mx-10 my-4`}
       >
         <div className="text-center">
-          <p className={`  text-white text-sm`}>
+          <p className={`text-white text-sm`}>
             © {new Date().getFullYear()} Campus Finder. All rights reserved.
           </p>
         </div>
@@ -374,4 +437,4 @@ function FoundPage() {
   );
 }
 
-export default FoundPage;
+export default LostPage;
