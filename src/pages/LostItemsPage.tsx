@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Calendar, MapPin } from "lucide-react";
+import { Search, Calendar, MapPin, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,6 +59,8 @@ const LOSTITEMS = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFoundFormOpen, setIsFoundFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [foundItemForm, setFoundItemForm] = useState<FoundItemForm>({
     finderRollNo: "",
     placeWhereFound: "",
@@ -65,6 +77,38 @@ const LOSTITEMS = () => {
   const handleFoundItemClick = () => {
     setIsDialogOpen(false);
     setIsFoundFormOpen(true);
+  };
+
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedItem) return;
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase
+        .from("LOST_TABLE")
+        .delete()
+        .eq("id", selectedItem.id);
+
+      if (error) throw error;
+
+      // Close dialogs
+      setIsDeleteDialogOpen(false);
+      setIsDialogOpen(false);
+
+      // Refresh the lost items list
+      fetchLostItems();
+
+      alert("Item successfully deleted!");
+    } catch (error) {
+      console.error("Error deleting lost item:", error);
+      alert("Failed to delete item. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleFoundFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -336,7 +380,7 @@ const LOSTITEMS = () => {
               </div>
             )}
 
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <DialogFooter className="grid grid-cols-1 grid-rows-2 sm:flex-row gap-2 mt-4">
               <Button
                 className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
                 onClick={handleFoundItemClick}
@@ -344,15 +388,45 @@ const LOSTITEMS = () => {
                 Found This Item
               </Button>
               <Button
-                variant="outline"
-                className="w-full sm:w-auto text-white border-gray-600 hover:bg-gray-700"
-                onClick={() => setIsDialogOpen(false)}
+                variant="destructive"
+                className="w-full sm:w-auto flex items-center gap-2"
+                onClick={handleDeleteClick}
               >
-                Close
+                <Trash2 className="h-4 w-4" /> Delete Request
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
+          <AlertDialogContent className="bg-gray-800 text-white border-gray-700">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">
+                Delete Lost Item Request
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-300">
+                Are you sure you want to delete this lost item request? This
+                action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+              <AlertDialogCancel className="text-black border-gray-600 hover:bg-gray-700">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Found Item Form Dialog */}
         <Dialog open={isFoundFormOpen} onOpenChange={setIsFoundFormOpen}>
