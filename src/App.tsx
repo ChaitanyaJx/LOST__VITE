@@ -13,7 +13,9 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col justify-between bg-black`}>
+    <div
+      className={`min-h-screen flex flex-col justify-between bg-black md:max-h-screen`}
+    >
       {/* Header */}
       <header className="py-8 px-8 bg-[#CF0F47] text-white rounded-xl mx-10 my-4">
         <motion.div
