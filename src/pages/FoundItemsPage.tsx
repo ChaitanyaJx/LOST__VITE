@@ -312,16 +312,12 @@ const FOUNDITEMSPAGE = () => {
       <footer
         className={`py-4 px-8 bg-[#CF0F47] border-t border-[#CF0F47] rounded-xl mx-10 my-4`}
       >
-        <div className="text-center">
+        <div
+          className="text-center cursor-pointer"
+          onClick={() => handleNavigation("/lostitem")}
+        >
           <p className={`text-white text-sm`}>
-            Didn't find your lost item? Make a request
-            <button
-              onClick={() => handleNavigation("/lostitem")}
-              className="px-1 cursor-pointer"
-            >
-              {" "}
-              here{" "}
-            </button>
+            Didn't find your lost item? Make a request here
           </p>
         </div>
       </footer>
