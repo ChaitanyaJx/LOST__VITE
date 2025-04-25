@@ -484,7 +484,7 @@ const LOSTITEMS = () => {
             </p>
             <Button
               variant="outline"
-              className="text-white border-gray-600 hover:bg-gray-700"
+              className="text-black border-gray-600 hover:bg-gray-700"
               onClick={() => {
                 setSearchTerm("");
                 setSortOption("newest");
