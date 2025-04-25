@@ -1,4 +1,3 @@
-// Remove unused React import (in React 17+ it's not required)
 import { useState, useEffect } from "react";
 import { Search, Calendar, MapPin } from "lucide-react";
 import {
@@ -19,8 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+// Note: Framer Motion is not available in the artifact system
+// Using standard React for animations instead
 import { supabase } from "./supabase-client";
 
 interface LostItem {
@@ -128,17 +127,22 @@ const LOSTITEMS = () => {
   };
 
   const fetchLostItems = async () => {
-    const { error, data } = await supabase
-      .from("LOST_TABLE")
-      .select("*")
-      .eq("stillMissing", "searching") // Only fetch items still being searched for
-      .order("dateLost", { ascending: false });
+    try {
+      // Add error handling for CORS issues
+      const { error, data } = await supabase
+        .from("LOST_TABLE")
+        .select("*")
+        .eq("stillMissing", "searching") // Only fetch items still being searched for
+        .order("dateLost", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching lost items:", error);
-      return;
+      if (error) {
+        console.error("Error fetching lost items:", error);
+        return;
+      }
+      setLostItems(data || []);
+    } catch (err) {
+      console.error("Error with Supabase connection:", err);
     }
-    setLostItems(data || []);
   };
 
   useEffect(() => {
@@ -171,40 +175,38 @@ const LOSTITEMS = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       // Redirect or update state as needed
+      window.location.href = "/signin"; // Add redirection to login page
     } catch (error) {
       console.error("Error during logout:", error);
       // Handle error gracefully, maybe show a message to the user
     }
   };
+
   return (
     <div className="min-h-screen flex flex-col justify-start bg-black">
       <header className="py-8 px-8 bg-[#CF0F47] text-white rounded-xl mx-10 my-4">
-        <motion.div
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
+        <div className="transform transition-transform duration-500 translate-y-0 opacity-100">
           <h1 className="text-5xl text-center font-bold">LOST ITEMS</h1>
-        </motion.div>
+        </div>
       </header>
 
       <div className="px-10 text-white pb-4">
         {/* Search, Filter, and Sort Section */}
         <div className="flex flex-col md:flex-row gap-4 my-8">
           <div className="relative flex-grow">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-700" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search by description or location"
-              className="pl-10 text-white"
+              className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <Select value={sortOption} onValueChange={setSortOption}>
-            <SelectTrigger className="w-full md:w-[180px]">
+            <SelectTrigger className="w-full md:w-[180px] bg-gray-800 border-gray-700 text-white">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-800 border-gray-700 text-white">
               {sortOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -216,7 +218,7 @@ const LOSTITEMS = () => {
 
         {/* Items Count */}
         <div className="mb-6">
-          <p className="text-gray-600">
+          <p className="text-gray-400">
             Showing {filteredAndSortedItems.length}{" "}
             {filteredAndSortedItems.length === 1 ? "item" : "items"}
           </p>
@@ -227,7 +229,7 @@ const LOSTITEMS = () => {
           {filteredAndSortedItems.map((item) => (
             <Card
               key={item.id}
-              className="overflow-hidden border-l-4 border-l-blue-500"
+              className="overflow-hidden border-l-4 border-l-blue-500 bg-gray-800 text-white"
             >
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -245,10 +247,10 @@ const LOSTITEMS = () => {
                   <div className="flex-grow">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-medium text-base">
+                        <h3 className="font-medium text-base text-white">
                           {item.description}
                         </h3>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <p className="text-sm text-gray-300 flex items-center gap-1">
                           <Calendar className="h-3 w-3" /> Lost on{" "}
                           {new Date(item.dateLost).toLocaleDateString()}
                         </p>
@@ -256,9 +258,11 @@ const LOSTITEMS = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
                       <p className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-gray-500" />
-                        <span className="text-gray-500">Location:</span>{" "}
-                        {item.placeWhereLost}
+                        <MapPin className="h-3 w-3 text-gray-300" />
+                        <span className="text-gray-300">Location:</span>{" "}
+                        <span className="text-white">
+                          {item.placeWhereLost}
+                        </span>
                       </p>
                     </div>
                   </div>
@@ -271,6 +275,7 @@ const LOSTITEMS = () => {
                       variant="outline"
                       size="lg"
                       onClick={() => handleItemClick(item)}
+                      className="text-black border-gray-600 hover:bg-gray-700"
                     >
                       Details
                     </Button>
@@ -283,12 +288,12 @@ const LOSTITEMS = () => {
 
         {/* Detail Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="bg-white text-gray-900 max-w-md">
+          <DialogContent className="bg-gray-800 text-white max-w-md border-gray-700">
             <DialogHeader>
-              <DialogTitle className="text-xl">
+              <DialogTitle className="text-xl text-white">
                 {selectedItem?.description}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-gray-300">
                 This item is still being searched for
               </DialogDescription>
             </DialogHeader>
@@ -308,23 +313,23 @@ const LOSTITEMS = () => {
 
                 {/* Item Details */}
                 <div className="grid grid-cols-3 gap-2 text-sm">
-                  <span className="font-medium text-gray-700">Lost On:</span>
-                  <span className="col-span-2">
+                  <span className="font-medium text-gray-300">Lost On:</span>
+                  <span className="col-span-2 text-white">
                     {new Date(selectedItem.dateLost).toLocaleDateString()}
                   </span>
 
-                  <span className="font-medium text-gray-700">Location:</span>
-                  <span className="col-span-2">
+                  <span className="font-medium text-gray-300">Location:</span>
+                  <span className="col-span-2 text-white">
                     {selectedItem.placeWhereLost}
                   </span>
 
-                  <span className="font-medium text-gray-700">Owner:</span>
-                  <span className="col-span-2">
+                  <span className="font-medium text-gray-300">Owner:</span>
+                  <span className="col-span-2 text-white">
                     {selectedItem.personRollno}
                   </span>
 
-                  <span className="font-medium text-gray-700">Contact:</span>
-                  <span className="col-span-2">
+                  <span className="font-medium text-gray-300">Contact:</span>
+                  <span className="col-span-2 text-white">
                     {selectedItem.PersonContact || "Not provided"}
                   </span>
                 </div>
@@ -333,14 +338,14 @@ const LOSTITEMS = () => {
 
             <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
               <Button
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
                 onClick={handleFoundItemClick}
               >
                 Found This Item
               </Button>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto text-white border-gray-600 hover:bg-gray-700"
                 onClick={() => setIsDialogOpen(false)}
               >
                 Close
@@ -351,10 +356,12 @@ const LOSTITEMS = () => {
 
         {/* Found Item Form Dialog */}
         <Dialog open={isFoundFormOpen} onOpenChange={setIsFoundFormOpen}>
-          <DialogContent className="bg-white text-gray-900 max-w-md">
+          <DialogContent className="bg-gray-800 text-white max-w-md border-gray-700">
             <DialogHeader>
-              <DialogTitle className="text-xl">Report Found Item</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-xl text-white">
+                Report Found Item
+              </DialogTitle>
+              <DialogDescription className="text-gray-300">
                 Please provide details about finding this item
               </DialogDescription>
             </DialogHeader>
@@ -362,7 +369,10 @@ const LOSTITEMS = () => {
             <form onSubmit={handleFoundFormSubmit} className="space-y-4">
               <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <label htmlFor="finderRollNo" className="text-sm font-medium">
+                  <label
+                    htmlFor="finderRollNo"
+                    className="text-sm font-medium text-gray-300"
+                  >
                     Your Roll Number
                   </label>
                   <Input
@@ -370,6 +380,7 @@ const LOSTITEMS = () => {
                     name="finderRollNo"
                     value={foundItemForm.finderRollNo}
                     onChange={handleFoundFormChange}
+                    className="bg-gray-700 border-gray-600 text-white"
                     required
                   />
                 </div>
@@ -377,7 +388,7 @@ const LOSTITEMS = () => {
                 <div className="grid gap-2">
                   <label
                     htmlFor="placeWhereFound"
-                    className="text-sm font-medium"
+                    className="text-sm font-medium text-gray-300"
                   >
                     Where did you find it?
                   </label>
@@ -386,12 +397,16 @@ const LOSTITEMS = () => {
                     name="placeWhereFound"
                     value={foundItemForm.placeWhereFound}
                     onChange={handleFoundFormChange}
+                    className="bg-gray-700 border-gray-600 text-white"
                     required
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <label htmlFor="locationItem" className="text-sm font-medium">
+                  <label
+                    htmlFor="locationItem"
+                    className="text-sm font-medium text-gray-300"
+                  >
                     Current Location of Item
                   </label>
                   <Input
@@ -399,6 +414,7 @@ const LOSTITEMS = () => {
                     name="locationItem"
                     value={foundItemForm.locationItem}
                     onChange={handleFoundFormChange}
+                    className="bg-gray-700 border-gray-600 text-white"
                     required
                   />
                 </div>
@@ -406,7 +422,7 @@ const LOSTITEMS = () => {
                 <div className="grid gap-2">
                   <label
                     htmlFor="finderContact"
-                    className="text-sm font-medium"
+                    className="text-sm font-medium text-gray-300"
                   >
                     Your Contact Number
                   </label>
@@ -415,12 +431,16 @@ const LOSTITEMS = () => {
                     name="finderContact"
                     value={foundItemForm.finderContact}
                     onChange={handleFoundFormChange}
+                    className="bg-gray-700 border-gray-600 text-white"
                     required
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <label htmlFor="dateFound" className="text-sm font-medium">
+                  <label
+                    htmlFor="dateFound"
+                    className="text-sm font-medium text-gray-300"
+                  >
                     Date Found
                   </label>
                   <Input
@@ -429,6 +449,7 @@ const LOSTITEMS = () => {
                     type="date"
                     value={foundItemForm.dateFound}
                     onChange={handleFoundFormChange}
+                    className="bg-gray-700 border-gray-600 text-white"
                     required
                   />
                 </div>
@@ -437,7 +458,7 @@ const LOSTITEMS = () => {
               <DialogFooter className="pt-4">
                 <Button
                   type="submit"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Submitting..." : "Submit"}
@@ -445,7 +466,7 @@ const LOSTITEMS = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto text-white border-gray-600 hover:bg-gray-700"
                   onClick={() => setIsFoundFormOpen(false)}
                   disabled={isSubmitting}
                 >
@@ -457,12 +478,13 @@ const LOSTITEMS = () => {
         </Dialog>
 
         {filteredAndSortedItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-black">
-            <p className="text-xl text-gray-500 mb-4">
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-xl text-gray-400 mb-4">
               No items found matching your search
             </p>
             <Button
               variant="outline"
+              className="text-white border-gray-600 hover:bg-gray-700"
               onClick={() => {
                 setSearchTerm("");
                 setSortOption("newest");
@@ -475,12 +497,17 @@ const LOSTITEMS = () => {
 
         {/* Add New Lost Item Button */}
         <div className="fixed bottom-8 right-8">
-          <Button size="lg" className="rounded-full shadow-lg mx-2">
-            <Link to="/founditem">Report Found Items</Link>
-          </Button>
+          <a href="/founditem" className="inline-block">
+            <Button
+              size="lg"
+              className="rounded-full shadow-lg mx-2 bg-blue-600 hover:bg-blue-700"
+            >
+              Report Found Items
+            </Button>
+          </a>
           <Button
             size="lg"
-            className="rounded-full shadow-lg cursor-pointer"
+            className="rounded-full shadow-lg cursor-pointer bg-red-600 hover:bg-red-700"
             onClick={handleLogout}
           >
             LogOut
